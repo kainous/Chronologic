@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>8</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Update="Flags.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Flags.tt</DependentUpon>
+    </Compile>
+    <None Update="Flags.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Flags.cs</LastGenOutput>
+    </None>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+</Project>

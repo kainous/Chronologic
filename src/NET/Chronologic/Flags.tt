@@ -1,0 +1,237 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<# var types = new (string Unsigned, string Signed)[] {
+    ("byte", "sbyte"),
+    ("ushort", "short"),
+    ("uint", "int"),
+    ("ulong", "long")
+}; #> 
+using System;
+using System.Runtime.CompilerServices;
+
+namespace Chronologic {
+<# for (var i = 0; i <= 3; i++) { 
+    var bitsize = 1 << (i + 3);
+#>
+    public readonly partial struct Flag<#= bitsize #> : IEquatable<Flag<#= bitsize #>> {
+        private readonly <#= types[i].Unsigned #> _value;
+
+        private Flag<#= bitsize #>(<#= types[i].Unsigned #> value) =>
+            _value = value;
+
+        private void TransposeUnsafe(Span<Flag<#= bitsize #>> data) {
+            // Half the maximum value of <#= types[i].Unsigned #>
+            var m = (<#= types[i].Unsigned #>)0x<#= ((~0UL) >> (64 - (bitsize >> 1))).ToString($"X{(1<<(i+1))}") #>;
+
+            for (int j = <#= bitsize>>1 #>; j != 0; j >>= 1, m ^= (<#= types[i].Unsigned #>)(m << j)) {
+                for (int k = 0; k < <#= bitsize #>; k = ((k | j) + 1) & ~j) {
+                    var t = (<#= types[i].Unsigned #>)((data[k] ^ (data[k | j] >> j)) & m);
+                    data[k] ^= t;
+                    data[k | j] ^= (<#= types[i].Unsigned #>)(t << j);
+                }
+            }
+        }
+
+        // THIS PARTICULAR implementation demands only the (^) operator
+        public Flag<#= bitsize #>[] DoubleDeltaXor(Flag<#= bitsize #>[] data) {
+            var result = new Flag<#= bitsize #>[data.Length];
+            data.CopyTo(result, 0);
+            if (result.Length == 0 || result.Length == 1) {
+                return result;
+            }
+            else if (result.Length == 2) {
+                result[1] ^= result[0];
+                return result;
+            }
+            var prev2 = result[0] ^ result[1];
+            var prev1 = result[1];
+
+            for (int i = 2; i < result.Length; i++) {
+                var prev0 = result[i];
+                // Required explicit conversion due to bytes
+                var next1 = (Flag<#= bitsize #>)(prev0 ^ prev1);
+                result[i] = (Flag<#= bitsize #>)(next1 ^ prev2);
+                prev2 = next1;
+                prev1 = prev0;
+            }
+
+            return result;
+        }
+
+        public Flag<#= bitsize #>[] TransposeEncode(Flag<#= bitsize #>[] data) {
+            const int bitsize = <#= bitsize #>;
+            // The new array size is made of <#= bitsize #>-byte chunks:
+            var result = new Flag<#= bitsize #>[(data.Length + bitsize - 1) & ~0x<#= (bitsize - 1).ToString("X") #>];
+
+            data.CopyTo(result, 0);
+            for (int i = 0; i < result.Length; i += bitsize) {
+                TransposeUnsafe(result.AsSpan(i, bitsize));
+            }
+            return result;
+        }
+
+        public Span<Flag<#= bitsize #>> TransposeDecode(Flag<#= bitsize #>[] data, int count) {
+            const int bitsize = <#= bitsize #>;
+            var result = (Flag<#= bitsize #>[])data.Clone();
+
+            for (int i = 0; i < result.Length; i += bitsize) {
+                TransposeUnsafe(result.AsSpan(i, bitsize));
+            }
+            return result.AsSpan(0, count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Flag<#= bitsize #>(<#= types[i].Unsigned #> value) =>
+            new Flag<#= bitsize #>(value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator <#= types[i].Unsigned #>(Flag<#= bitsize #> value) =>
+            value._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(Flag<#= bitsize #> first, Flag<#= bitsize #> second) =>
+            first._value == second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(Flag<#= bitsize #> first, <#= types[i].Unsigned #> second) =>
+            first._value == second;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(<#= types[i].Unsigned #> first, Flag<#= bitsize #> second) =>
+            first == second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(Flag<#= bitsize #> first, Flag<#= bitsize #> second) =>
+            first._value != second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(Flag<#= bitsize #> first, <#= types[i].Unsigned #> second) =>
+            first._value != second;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(<#= types[i].Unsigned #> first, Flag<#= bitsize #> second) =>
+            first != second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(Flag<#= bitsize #> other) =>
+            _value.Equals(other._value);
+
+        public override bool Equals(object other) =>
+            other is Flag<#= bitsize #> x && Equals(x);
+
+        public override int GetHashCode() =>
+            _value.GetHashCode();
+
+        public override string ToString() =>
+            _value.ToString("X<#= bitsize >> 2#>");
+    }
+
+    public readonly partial struct U<#= bitsize #> : IEquatable<U<#= bitsize #>>  {
+        private readonly <#= types[i].Unsigned #> _value;
+
+        private U<#= bitsize #>(<#= types[i].Unsigned #> value) =>
+            _value = value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator U<#= bitsize #>(<#= types[i].Unsigned #> value) =>
+            new U<#= bitsize #>(value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator <#= types[i].Unsigned #>(U<#= bitsize #> value) =>
+            value._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(U<#= bitsize #> first, U<#= bitsize #> second) =>
+            first._value == second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(U<#= bitsize #> first, <#= types[i].Unsigned #> second) =>
+            first._value == second;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(<#= types[i].Unsigned #> first, U<#= bitsize #> second) =>
+            first == second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(U<#= bitsize #> first, U<#= bitsize #> second) =>
+            first._value != second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(U<#= bitsize #> first, <#= types[i].Unsigned #> second) =>
+            first._value != second;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(<#= types[i].Unsigned #> first, U<#= bitsize #> second) =>
+            first != second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(U<#= bitsize #> other) =>
+            _value.Equals(other._value);
+
+        public override bool Equals(object other) =>
+            other is U<#= bitsize #> x && Equals(x);
+
+        public override int GetHashCode() =>
+            _value.GetHashCode();
+    
+        public override string ToString() =>
+            _value.ToString();
+    }
+
+    public readonly partial struct I<#= bitsize #> : IEquatable<I<#= bitsize #>>  {
+        private readonly <#= types[i].Signed #> _value;
+
+        private I<#= bitsize #>(<#= types[i].Signed #> value) =>
+            _value = value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator I<#= bitsize #>(<#= types[i].Signed #> value) =>
+            new I<#= bitsize #>(value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator <#= types[i].Signed #>(I<#= bitsize #> value) =>
+            value._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(I<#= bitsize #> first, I<#= bitsize #> second) =>
+            first._value == second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(I<#= bitsize #> first, <#= types[i].Signed #> second) =>
+            first._value == second;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(<#= types[i].Signed #> first, I<#= bitsize #> second) =>
+            first == second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(I<#= bitsize #> first, I<#= bitsize #> second) =>
+            first._value != second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(I<#= bitsize #> first, <#= types[i].Signed #> second) =>
+            first._value != second;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(<#= types[i].Signed #> first, I<#= bitsize #> second) =>
+            first != second._value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(I<#= bitsize #> other) =>
+            _value.Equals(other._value);
+
+        public override bool Equals(object other) =>
+            other is I<#= bitsize #> x && Equals(x);
+
+        public override int GetHashCode() =>
+            _value.GetHashCode();
+    
+        public override string ToString() =>
+            _value.ToString();
+    }
+<# } #>
+}
