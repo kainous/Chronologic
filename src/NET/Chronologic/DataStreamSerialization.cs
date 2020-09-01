@@ -11,8 +11,9 @@ namespace Chronologic {
             var result = new byte[values.Length * bytesize];
             for (int i = 0; i < values.Length; i++) {
                 var value = values[i];
-                for (int b = 0; value != 0 && b < bytesize; b++, value >>= 8) {
-                    result[b + i * bytesize] = (byte)value;
+                var primaryOffset = i * bytesize;
+                for (int b = bytesize - 1; value != 0 && b >= 0; b--, value >>=8) {
+                    result[b + primaryOffset] = (byte)value;
                 }
             }
             return result;
@@ -20,14 +21,11 @@ namespace Chronologic {
 
         public static IEnumerable<ulong> FixedLengthDecodingUInt64(this byte[] data) {
             var index = 0;
-            //for (int i=0;i<)
-
             while (index < data.Length) {
                 var result = 0UL;
-                while (data[index] > 0x7F) {
-                    result = (result << 7) | (data[index++] & 0x7FUL);
+                for (int i = 0; i < sizeof(ulong); i++) {
+                    result = (result << 8) | data[index++];
                 }
-                result = (result << 7) | data[index++];
                 yield return result;
             }
         }
@@ -112,8 +110,10 @@ namespace Chronologic {
 
             var sdf =
                 options.CompressionLevel == 0
-                ? (IEnumerable<long>) bytes.FixedLengthDecodingInt64()
-                : (IEnumerable<long>) bytes
+                ? bytes
+                    .FixedLengthDecodingUInt64()
+                    .Select(o => (long)o)
+                : bytes
                     .VariableLengthDecoding()
                     .Select(EnumerableUtilities.ZigZagDecode)
                     .DoubleDeltaAddition();

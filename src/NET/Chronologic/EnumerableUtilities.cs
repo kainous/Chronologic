@@ -64,8 +64,17 @@ namespace Chronologic {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IEnumerable<long> LossyTruncation(this IEnumerable<long> values, int lossiness) =>
-            values.Select(v => v >> lossiness);
+        public static IEnumerable<long> LossyTruncation(this IEnumerable<long> values, int lossiness) {
+            if (lossiness == 0) {
+                return values;
+            }
+            else {
+                var roundingFactor = 1 << (lossiness - 1);
+                return
+                    values
+                    .Select(v => (v + roundingFactor) >> lossiness);
+            }
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IEnumerable<long> UnLossyTruncation(this IEnumerable<long> values, int lossiness) =>
