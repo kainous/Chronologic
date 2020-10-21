@@ -1,4 +1,4 @@
-﻿namespace CSharp.Math {
+﻿namespace Metimur.Math {
     public readonly struct NoneOf {
         public static NoneOf Default { get; } =
             new NoneOf();

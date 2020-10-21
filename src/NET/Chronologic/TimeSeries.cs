@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
-using CSharp.Math;
+using Metimur.Math;
 using Newtonsoft.Json.Linq;
 
 namespace Chronologic {
@@ -57,6 +57,7 @@ namespace Chronologic {
     //    //}
     //}
 
+
     public class SampleBlock<TValue, TTracker> : IEnumerable<Sample<TValue, TTracker>> {
         private readonly SortedList<TTracker, Sample<TValue, TTracker>> _samples =
             new SortedList<TTracker, Sample<TValue, TTracker>>();
@@ -74,7 +75,20 @@ namespace Chronologic {
             GetEnumerator();
     }
 
+    public readonly struct Tracker {
+        public DateTimeOffset Timestamp { get; }
+        public long Cycle { get; }
+
+        public Tracker(DateTimeOffset timestamp, long cycle) {
+            Timestamp = timestamp;
+            Cycle = cycle;
+        }
+    }
+
     public class TimeSeries {
-        //public void Add<T>(Guid signalID, )
+        //public IDictionary<>
+        public void Add(Guid signalID, SampleBlock<long, Tracker> sampleBlock) {
+
+        }
     }
 }

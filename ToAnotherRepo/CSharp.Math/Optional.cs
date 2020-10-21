@@ -1,4 +1,4 @@
-﻿namespace CSharp.Math {
+﻿namespace Metimur.Math {
     /// <summary>
     /// Used for function arguments instead of Option&lt;T&gt
     /// </summary>

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharp.Math {
+namespace Metimur.Math {
     // This is equivalent to System.Linq.Reactive.Unit
     // We don't have a coercion between them, becuase one library doesn't know of the other
     public readonly struct Void : IEquatable<Void> {

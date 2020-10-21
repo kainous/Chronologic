@@ -3,8 +3,10 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace CSharp.Math {
+namespace Metimur.Math {
     using static Basic;
+
+    [AsyncMethodBuilder(typeof(Monads.OptionAwaiter<>))]
     public readonly struct Option<T> : IEquatable<Option<T>> {
         private readonly bool _hasValue;
         private readonly T _value;
@@ -21,6 +23,9 @@ namespace CSharp.Math {
 
         public TResult If<TResult>(Func<T, TResult> function, TResult alternateValue) =>
             _hasValue ? function(_value) : alternateValue;
+
+        public TResult If<TResult>(Func<T, TResult> function, Func<TResult> alternate) =>
+            _hasValue ? function(_value) : alternate();
 
         public T GetValue(T alternativeValue) =>
             _hasValue ? _value : alternativeValue;
@@ -71,5 +76,30 @@ namespace CSharp.Math {
 
         public static Option<T> Where<T>(this Option<T> option, Func<T, bool> predicate) =>
             option.If(x => predicate(x) ? option : None, None);
+    }
+
+    namespace Monads {
+        public static class OptionMonadicExtensions {
+            public static OptionAwaiter<T> GetAwaiter<T>(this Option<T> option) =>
+                new OptionAwaiter<T>(option);
+        }
+
+        public class OptionAwaiter<T> : INotifyCompletion {
+            private readonly Option<T> _option;
+            public OptionAwaiter(Option<T> option) =>
+                _option = option;
+
+            public bool IsCompleted { get; } =
+                true;
+            public T GetResult() =>
+                _option.If(Id, () => throw new NullReferenceException());
+
+            public void OnCompleted(Action continuation) {
+                throw new NotImplementedException();
+            }
+
+            //public void SetResult(T result) =>
+
+        }
     }
 }

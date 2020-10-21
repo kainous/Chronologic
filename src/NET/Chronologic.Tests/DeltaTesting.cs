@@ -47,6 +47,9 @@ namespace Chronologic.Tests {
 
         [TestMethod]
         public void ZigZagEncoding() {
+            var testIn = (long)4611686018427387904;
+            var testOut = (long)testIn.ZigZagEncode();
+
             var json = _json["ZigZagEncodings"];
             var inputs = json["Inputs"].Select(o => (long)o).ToArray();
             var outputs = json["Outputs"].Select(o => ulong.Parse((string)o)).ToArray();

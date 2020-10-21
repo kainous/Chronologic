@@ -1,4 +1,4 @@
-﻿namespace CSharp.Math {
+﻿namespace Metimur.Math {
     /// <summary>
     /// This is both a Monad and comonad
     /// </summary>
