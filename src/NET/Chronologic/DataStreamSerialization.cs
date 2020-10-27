@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Hosting;
 
 namespace Chronologic {
+
+
     public static class DataStreamSerialization {
         public static ReadOnlySpan<byte> FixedLengthEncoding(this ulong[] values) {
             const int bytesize = sizeof(ulong);
@@ -88,6 +91,28 @@ namespace Chronologic {
                 ? a
                     .Select(o => unchecked((ulong)o))
                     .ToArray()
+                    .FixedLengthEncoding()
+                : a
+                    .DoubleDeltaSubtraction()
+                    .Select(EnumerableUtilities.ZigZagEncode)
+                    .ToArray()
+                    .VariableLengthEncoding();
+
+            return
+                options.CompressionLevel > 1
+                ? b.ToArray().GZipCompress(CompressionLevel.Optimal)
+                : b.ToArray();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte[] GetBytes(this long[] values, CompressionOptions options) {
+            var a =
+                values.LossyTruncation(options.ValueLossiness);
+
+            var b =
+                options.CompressionLevel == 0
+                ? a
+                    .Select(o => unchecked((ulong)o))
                     .FixedLengthEncoding()
                 : a
                     .DoubleDeltaSubtraction()

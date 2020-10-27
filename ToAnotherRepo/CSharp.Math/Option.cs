@@ -42,7 +42,7 @@ namespace Metimur.Math {
 #pragma warning restore CS8602
 
         public override int GetHashCode() =>
-            If(o => o.GetHashCode(), 0);
+            If(o => o!.GetHashCode(), 0);
 
         public override bool Equals(object other) =>
            other is Option<T> o && Equals(o);

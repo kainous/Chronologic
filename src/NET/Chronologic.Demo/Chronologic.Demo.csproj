@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
     <PackageReference Include="Zstandard.Net" Version="1.1.7" />
+    <PackageReference Include="Google.Protobuf" Version="3.13.0" />
     <ProjectReference Include="..\Chronologic\Chronologic.csproj" />
   </ItemGroup>
 
